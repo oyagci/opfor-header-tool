@@ -1,4 +1,9 @@
 workspace "opfor-header-tool"
+
+    IncludeDir = {}
+    IncludeDir["fmt"] = "op4ht/vendor/fmt/include"
+    IncludeDir["cxxopts"] = "op4ht/vendor/cxxopts/include"
+
     architecture "x64"
 
     configurations {
@@ -11,6 +16,8 @@ workspace "opfor-header-tool"
     }
 
     outputdir = "%{cfg.buildcfg}-%{cfg.system}-%{cfg.architecture}"
+
+    include "op4ht/vendor/fmt"
 
     project "op4ht"
         location "op4ht"
@@ -29,9 +36,12 @@ workspace "opfor-header-tool"
 
         includedirs {
             "%{prj.name}/src",
+            "%{IncludeDir.fmt}",
+            "%{IncludeDir.cxxopts}",
         }
 
         links {
+            "fmt"
         }
 
         filter "configurations:Debug"
