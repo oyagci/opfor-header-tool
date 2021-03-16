@@ -33,16 +33,23 @@ void Scanner::ScanCurrentToken()
     char l_ch = Advance();
     switch (l_ch)
     {
-    case '(':
+	case ':':
+		AddToken(Match(':') ? DOUBLE_COLON : COLON);
+		break;
+	case '(':
         AddToken(LPAREN);
         break;
     case ')':
         AddToken(RPAREN);
         break;
+	case '{':
+		AddToken(LCURL);
+		break;
+	case '}':
+		AddToken(RCURL);
+		break;
     case ';':
-        // Comment: skip until new line
-        while (!IsAtEnd() && Peek() != '\n')
-            Advance();
+		AddToken(SEMICOLON);
         break;
     case ' ':
     case '\t':
@@ -56,7 +63,7 @@ void Scanner::ScanCurrentToken()
     default:
         if (IsAlpha(l_ch))
         {
-            Identifier();
+            Keyword();
         }
         else if (IsDigit(l_ch) || l_ch == '-')
         {
@@ -87,7 +94,7 @@ void Scanner::AddToken(TokenType p_tokenType)
 void Scanner::AddToken(TokenType p_tokenType, std::optional<std::string> p_literal)
 {
     std::string l_text = m_source.substr(m_start, m_current - m_start);
-    m_tokens.emplace_back(Token(p_tokenType, l_text, p_literal, m_line, m_column));
+    m_tokens.emplace_back(Token(p_tokenType, l_text, p_literal, m_line, m_column, m_start, m_current));
 }
 
 bool Scanner::Match(char p_expected)
@@ -130,7 +137,7 @@ bool Scanner::IsAlphaNumeric(char p_char)
     return IsAlpha(p_char) || IsDigit(p_char) || p_char == '_';
 }
 
-void Scanner::Identifier()
+void Scanner::Keyword()
 {
     while (IsAlphaNumeric(Peek()))
         Advance();
@@ -143,8 +150,13 @@ void Scanner::Identifier()
     }
     else
     {
-        // Lexer::Error(m_line, fmt::format("Unexpected Identifier: '{}'", l_text));
+		AddToken(IDENTIFIER);
+        // Lexer::Error(m_line, fmt::format("Unexpected Keyword: '{}'", l_text));
     }
+}
+
+void Scanner::Identifier()
+{
 }
 
 void Scanner::Number()
@@ -169,8 +181,7 @@ void Scanner::Number()
 void Scanner::NewLine()
 {
     AddToken(NEWLINE);
-
-    while (!IsAtEnd() && Peek() == '\n')
-        Advance();
+    //while (!IsAtEnd() && Peek() == '\n')
+    //    Advance();
 }
 } // namespace op4ht

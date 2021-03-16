@@ -3,6 +3,8 @@
 #include <fstream>
 #include <vector>
 #include <exception>
+#include <variant>
+#include "Lexer.hpp"
 
 namespace op4ht
 {
@@ -26,22 +28,62 @@ private:
 class HeaderParser
 {
 private:
-    struct ComponentOption
+	struct Property
+	{
+		enum class Type
+		{
+			INT,
+			FLOAT,
+			DOUBLE,
+			STRING,
+		};
+
+		Type type;
+		std::string name;
+		void *value;
+	};
+
+	struct Method
+	{
+		enum class RetType
+		{
+			INT,
+			FLOAT,
+			DOUBLE,
+			STRING,
+		};
+
+		RetType returnType;
+		std::string name;
+	};
+
+    struct ComponentDescriptor
     {
+		enum class Type
+		{
+			CLASS,
+			STRUCT,
+		};
+		std::vector<Property> properties;
+		std::vector<Method> methods;
     };
 
 public:
-    HeaderParser();
+	HeaderParser() = delete;
+	HeaderParser(std::string const &src, const std::list<Token> &tokens);
+
+	void ParseHeaderFile();
 
 private:
-    void ParseHeaderFile(std::string const &path);
-    std::vector<ComponentOption> GetComponentOptions(std::string_view start);
-    std::string GetComponentName(std::string_view start);
-    std::string GenerateComponentBody(std::string componentName, std::vector<ComponentOption> componentOptions);
-    void AddComponent(std::string const &path, std::string body);
+	void ParseComponent();
 
-    static std::ifstream OpenFile(std::string const &path);
-    static std::string ReadFile(std::string const &path);
+	void Advance();
+	bool IsAtEnd() const;
+	const Token &Peek() const;
+	const Token &PeekNext() const;
+
+	std::string m_source;
+	std::list<Token> m_tokens;
 };
 
 }

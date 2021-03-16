@@ -6,94 +6,99 @@
 namespace op4ht
 {
 
-HeaderParser::HeaderParser() = default;
-
-std::ifstream HeaderParser::OpenFile(std::string const &path)
+HeaderParser::HeaderParser(std::string const &src, const std::list<Token> &tokens)
+	: m_tokens(tokens), m_source(src)
 {
-    std::ifstream file(path, std::ios::in);
-
-    if (!file.is_open())
-    {
-        throw std::runtime_error(fmt::format("Failed to open input file {}", path));
-    }
-
-    return file;
 }
 
-std::string HeaderParser::ReadFile(std::string const &path)
+void HeaderParser::ParseHeaderFile()
 {
-    const auto file = OpenFile(path);
-    std::stringstream sstr;
+	while (!IsAtEnd())
+	{
+		auto &t = Peek();
 
-    sstr << file.rdbuf();
-    return sstr.str();
+		switch (t.m_type)
+		{
+		case TokenType::OP4_COMPONENT:
+			ParseComponent();
+			break;
+		default:
+			Advance();
+			break;
+		}
+	}
 }
 
-void HeaderParser::ParseHeaderFile(std::string const &path)
+void HeaderParser::ParseComponent()
 {
-    const auto content = ReadFile(path);
-    std::string::size_type idx;
+	Token token = Peek();
 
-    do
-    {
-        idx = content.find("OP4_COMPONENT");
-        if (idx != std::string::npos)
-        {
-            const auto componentOptions = GetComponentOptions(std::string_view(content).substr(idx));
-            const auto componentName = GetComponentName(std::string_view(content).substr(idx));
-            const std::string componentBody = GenerateComponentBody(componentName, componentOptions);
-            AddComponent(path, componentBody);
-        }
-    } while (idx != std::string::npos);
+	if (token.m_type != TokenType::OP4_COMPONENT)
+	{
+		throw std::runtime_error("Token.m_type != OP4_COMPONENT");
+	}
+
+	Advance();
+	token = Peek();
+	if (token.m_type != TokenType::LPAREN)
+	{
+		throw std::runtime_error("Expected '(' after component identifier");
+	}
+
+	Token lparen = token;
+
+	while (!IsAtEnd() && token.m_type != TokenType::RPAREN)
+	{
+		Advance();
+		token = Peek();
+	}
+	if (IsAtEnd())
+	{
+		throw std::runtime_error("Expected ')' after '('");
+	}
+
+	Token rparen = token;
+	
+	while (!IsAtEnd() && token.m_type != TokenType::LCURL)
+	{
+		Advance();
+		token = Peek();
+	}
+
+	if (IsAtEnd())
+	{
+		throw std::runtime_error("Expected statement after component designator");
+	}
+
+	Token delimiter = token;
+
+	std::string const classHead = m_source.substr(rparen.m_end, delimiter.m_start - rparen.m_end);
+
+	//ParseClassHead(classHead);
 }
 
-std::vector<HeaderParser::ComponentOption> HeaderParser::GetComponentOptions(std::string_view start)
+const Token &HeaderParser::Peek() const
 {
-    auto idx = start.find("OP4_COMPONENT");
-
-    if (idx != 0)
-    {
-        throw std::runtime_error("Not a valid component keyword");
-    }
-
-    while (idx < start.size() && std::isspace(start[idx]))
-    {
-        idx++;
-    }
-
-    if (start[idx] != '(')
-    {
-        throw SyntaxError("Expected '(' after OP4_COMPONENT");
-    }
-
-    idx++;
-
-    if (start[idx] != ')')
-    {
-        throw SyntaxError("Expected ')' after OP4_COMPONENT");
-    }
+	return m_tokens.front();
 }
 
-std::string HeaderParser::GetComponentName(std::string_view start)
+const Token &HeaderParser::PeekNext() const
 {
-    auto idx = start.find(')');
+	auto begin = m_tokens.begin();
 
-    while (idx < start.size() && std::isspace(start[idx]))
-    {
-        idx++;
-    }
+	std::advance(begin, 1);
 
-    return "";
+	return *begin;
 }
 
-std::string HeaderParser::GenerateComponentBody(std::string componentName,
-    std::vector<ComponentOption> componentOptions)
+void HeaderParser::Advance()
 {
-    return "";
+	m_tokens.pop_front();
 }
 
-void HeaderParser::AddComponent(std::string const &path, std::string body)
+bool HeaderParser::IsAtEnd() const
 {
+	return m_tokens.empty();
 }
 
 }

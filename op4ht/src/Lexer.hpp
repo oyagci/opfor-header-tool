@@ -10,7 +10,7 @@ namespace op4ht
 class Lexer
 {
   public:
-    static void RunFile(std::string_view p_path)
+    static std::string RunFile(std::string_view p_path)
     {
         std::fstream l_file;
         l_file.open(std::string(p_path), std::ios::in);
@@ -19,6 +19,8 @@ class Lexer
         l_stringStream << l_file.rdbuf();
 
         Run(l_stringStream.str());
+
+		return l_stringStream.str();
     }
 
     static void Run(std::string_view p_source)

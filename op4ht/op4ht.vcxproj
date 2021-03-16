@@ -94,19 +94,19 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="src\HeaderParser.hpp" />
+    <ClInclude Include="src\Lexer.hpp" />
+    <ClInclude Include="src\Scanner.hpp" />
+  </ItemGroup>
+  <ItemGroup>
     <ClCompile Include="src\HeaderParser.cpp" />
-    <ClCompile Include="src\main.cpp" />
     <ClCompile Include="src\Scanner.cpp" />
+    <ClCompile Include="src\main.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="vendor\fmt\fmt.vcxproj">
       <Project>{4C73880B-B87C-887C-41F8-9E7CAD00947C}</Project>
     </ProjectReference>
-  </ItemGroup>
-  <ItemGroup>
-    <ClInclude Include="src\HeaderParser.hpp" />
-    <ClInclude Include="src\Lexer.hpp" />
-    <ClInclude Include="src\Scanner.hpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
