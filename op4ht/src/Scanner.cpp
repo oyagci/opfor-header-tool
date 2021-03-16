@@ -18,7 +18,7 @@ auto Scanner::ScanTokens() -> std::list<Token>
         ScanCurrentToken();
     }
 
-    AddToken(TokenType::INPUT_STOP);
+    AddToken(Token::Type::INPUT_STOP);
 
     return m_tokens;
 }
@@ -33,23 +33,32 @@ void Scanner::ScanCurrentToken()
     char l_ch = Advance();
     switch (l_ch)
     {
-	case ':':
-		AddToken(Match(':') ? DOUBLE_COLON : COLON);
-		break;
-	case '(':
-        AddToken(LPAREN);
+    case ':':
+        AddToken(Match(':') ? Token::Type::COLONCOLON : Token::Type::COLON);
+        break;
+    case '(':
+        AddToken(Token::Type::LPAREN);
         break;
     case ')':
-        AddToken(RPAREN);
+        AddToken(Token::Type::RPAREN);
         break;
-	case '{':
-		AddToken(LCURL);
-		break;
-	case '}':
-		AddToken(RCURL);
-		break;
+    case '{':
+        AddToken(Token::Type::LCURL);
+        break;
+    case '}':
+        AddToken(Token::Type::RCURL);
+        break;
     case ';':
-		AddToken(SEMICOLON);
+        AddToken(Token::Type::SEMICOLON);
+        break;
+    case '=':
+        AddToken(Match('=') ? Token::Type::EQUALEQUAL : Token::Type::EQUAL);
+        break;
+    case '[':
+        AddToken(Match('[') ? Token::Type::LBRACELBRACE : Token::Type::LBRACE);
+        break;
+    case ']':
+        AddToken(Match(']') ? Token::Type::RBRACERBRACE : Token::Type::RBRACE);
         break;
     case ' ':
     case '\t':
@@ -63,7 +72,10 @@ void Scanner::ScanCurrentToken()
     default:
         if (IsAlpha(l_ch))
         {
-            Keyword();
+            if (!Keyword() && !Identifier())
+            {
+                Lexer::Error(m_line, fmt::format("Unexpected Character: '{}'", l_ch));
+            }
         }
         else if (IsDigit(l_ch) || l_ch == '-')
         {
@@ -71,9 +83,7 @@ void Scanner::ScanCurrentToken()
         }
         else
         {
-            // ignore input
-
-            // Lexer::Error(m_line, fmt::format("Unexpected Character: '{}'", l_ch));
+            Lexer::Error(m_line, fmt::format("Unexpected Character: '{}'", l_ch));
         }
         break;
     }
@@ -86,15 +96,15 @@ char Scanner::Advance()
     return m_source[m_current - 1];
 }
 
-void Scanner::AddToken(TokenType p_tokenType)
+void Scanner::AddToken(Token::Type p_token)
 {
-    AddToken(p_tokenType, std::nullopt);
+    AddToken(p_token, std::nullopt);
 }
 
-void Scanner::AddToken(TokenType p_tokenType, std::optional<std::string> p_literal)
+void Scanner::AddToken(Token::Type p_token, std::optional<std::string> p_literal)
 {
     std::string l_text = m_source.substr(m_start, m_current - m_start);
-    m_tokens.emplace_back(Token(p_tokenType, l_text, p_literal, m_line, m_column, m_start, m_current));
+    m_tokens.emplace_back(Token(p_token, l_text, p_literal, m_line, m_column, m_start, m_current));
 }
 
 bool Scanner::Match(char p_expected)
@@ -137,26 +147,46 @@ bool Scanner::IsAlphaNumeric(char p_char)
     return IsAlpha(p_char) || IsDigit(p_char) || p_char == '_';
 }
 
-void Scanner::Keyword()
+bool Scanner::Keyword()
 {
     while (IsAlphaNumeric(Peek()))
         Advance();
 
     std::string l_text = m_source.substr(m_start, m_current - m_start);
-    const auto l_tokenType = s_keywords.find(l_text);
-    if (l_tokenType != s_keywords.end())
+    const auto l_token = s_keywords.find(l_text);
+    if (l_token != s_keywords.end())
     {
-        AddToken(l_tokenType->second);
+        AddToken(l_token->second);
+        return true;
     }
     else
     {
-		AddToken(IDENTIFIER);
-        // Lexer::Error(m_line, fmt::format("Unexpected Keyword: '{}'", l_text));
+        Rollback();
+        return false;
     }
 }
 
-void Scanner::Identifier()
+void Scanner::Rollback()
 {
+    m_current = m_start;
+}
+
+bool Scanner::Identifier()
+{
+    if (!IsNonDigit(Peek()))
+        return false;
+
+    while (IsNonDigit(Peek()) || IsDigit(Peek()))
+        Advance();
+
+    AddToken(Token::Type::IDENTIFIER);
+
+    return true;
+}
+
+bool Scanner::IsNonDigit(char p_c)
+{
+    return (p_c >= 'a' && p_c <= 'z') || (p_c >= 'A' && p_c <= 'Z') || p_c == '_';
 }
 
 void Scanner::Number()
@@ -175,13 +205,13 @@ void Scanner::Number()
         }
     }
 
-    AddToken(NUMBER, m_source.substr(m_start, m_current - m_start));
+    AddToken(Token::Type::NUMBER, m_source.substr(m_start, m_current - m_start));
 }
 
 void Scanner::NewLine()
 {
-    AddToken(NEWLINE);
-    //while (!IsAtEnd() && Peek() == '\n')
+    AddToken(Token::Type::NEWLINE);
+    // while (!IsAtEnd() && Peek() == '\n')
     //    Advance();
 }
 } // namespace op4ht

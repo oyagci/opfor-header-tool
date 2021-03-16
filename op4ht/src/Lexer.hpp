@@ -1,8 +1,8 @@
 #pragma once
 #include "Scanner.hpp"
+#include <fmt/format.h>
 #include <fstream>
 #include <sstream>
-#include <fmt/format.h>
 
 namespace op4ht
 {
@@ -20,7 +20,7 @@ class Lexer
 
         Run(l_stringStream.str());
 
-		return l_stringStream.str();
+        return l_stringStream.str();
     }
 
     static void Run(std::string_view p_source)
@@ -31,14 +31,14 @@ class Lexer
         s_tokens = l_tokens;
     }
 
-    static void Error(int p_line, std::string_view p_message)
+    static void Error(size_t p_line, std::string_view p_message)
     {
         Report(p_line, "", p_message);
     }
 
     static void Error(Token p_token, std::string p_message)
     {
-        if (p_token.m_type == TokenType::INPUT_STOP)
+        if (p_token.m_type == Token::Type::INPUT_STOP)
         {
             Report(p_token.m_line, "at end", p_message);
         }
@@ -48,7 +48,7 @@ class Lexer
         }
     }
 
-    static void Report(int p_line, std::string_view p_where, std::string_view p_message)
+    static void Report(size_t p_line, std::string_view p_where, std::string_view p_message)
     {
         fmt::print("[line {}] Error {}: {}\n", p_line, p_where, p_message);
         s_hadError = true;
